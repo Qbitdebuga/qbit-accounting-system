@@ -1,0 +1,30 @@
+name: Build Check
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v3
+
+      - name: 📦 Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: 🔧 Install pnpm
+        run: npm install -g pnpm
+
+      - name: 📥 Install dependencies
+        run: pnpm install
+
+      - name: 🏗 Build Web App
+        run: pnpm --filter @web build

@@ -1,0 +1,1002 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String    @db.VarChar(255)
+  legalName             String?   @db.VarChar(255)
+  taxId                 String?   @db.VarChar(50)
+  registrationNumber    String?   @db.VarChar(50)
+  industry              String?   @db.VarChar(100)
+  address               Json?
+  contactInfo           Json?
+  settings              Json      @default("{}")
+  baseCurrency          String    @default("USD") @db.VarChar(3)
+  fiscalYearEnd         Int       @default(12)
+  subscriptionTier      String    @default("basic") @db.VarChar(50)
+  subscriptionStatus    String    @default("active") @db.VarChar(20)
+  createdBy             String?   @db.Uuid
+  updatedBy             String?   @db.Uuid
+  createdAt             DateTime  @default(now()) @db.Timestamp()
+  updatedAt             DateTime  @default(now()) @db.Timestamp()
+
+  createdByUser         User?                   @relation("CompanyCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser         User?                   @relation("CompanyUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  users                 CompanyUser[]
+  chartOfAccounts       ChartOfAccounts[]
+  generalLedgerEntries  GeneralLedgerEntry[]
+  customers             Customer[]
+  vendors               Vendor[]
+  products              Product[]
+  warehouses            Warehouse[]
+  inventory             Inventory[]
+  inventoryTransactions InventoryTransaction[]
+  invoices              Invoice[]
+  bills                 Bill[]
+  payments              Payment[]
+  fiscalPeriods         FiscalPeriod[]
+  budgets               Budget[]
+  timeEntries           TimeEntry[]
+  payrollRuns           PayrollRun[]
+  bankAccounts          BankAccount[]
+  documents             Document[]
+}
+
+model User {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clerkId         String        @unique @db.VarChar(255)
+  email           String        @unique @db.VarChar(255)
+  firstName       String?       @db.VarChar(100)
+  lastName        String?       @db.VarChar(100)
+  phone           String?       @db.VarChar(20)
+  avatarUrl       String?       @db.Text
+  timezone        String        @default("UTC") @db.VarChar(50)
+  language        String        @default("en") @db.VarChar(10)
+  preferences     Json          @default("{}")
+  lastLoginAt     DateTime?     @db.Timestamp()
+  createdAt       DateTime      @default(now()) @db.Timestamp()
+  updatedAt       DateTime      @default(now()) @db.Timestamp()
+
+  companiesCreated  Company[]      @relation("CompanyCreatedBy")
+  companiesUpdated  Company[]      @relation("CompanyUpdatedBy")
+  companies         CompanyUser[]
+  chartOfAccountsCreated ChartOfAccounts[] @relation("ChartOfAccountsCreatedBy")
+  chartOfAccountsUpdated ChartOfAccounts[] @relation("ChartOfAccountsUpdatedBy")
+  generalLedgerEntriesCreated GeneralLedgerEntry[] @relation("GeneralLedgerEntryCreatedBy")
+  generalLedgerEntriesUpdated GeneralLedgerEntry[] @relation("GeneralLedgerEntryUpdatedBy")
+  generalLedgerEntriesPosted  GeneralLedgerEntry[] @relation("GeneralLedgerEntryPostedBy")
+  customersCreated  Customer[]     @relation("CustomerCreatedBy")
+  customersUpdated  Customer[]     @relation("CustomerUpdatedBy")
+  vendorsCreated    Vendor[]       @relation("VendorCreatedBy")
+  vendorsUpdated    Vendor[]       @relation("VendorUpdatedBy")
+  productsCreated   Product[]      @relation("ProductCreatedBy")
+  productsUpdated   Product[]      @relation("ProductUpdatedBy")
+  warehousesCreated Warehouse[]    @relation("WarehouseCreatedBy")
+  warehousesUpdated Warehouse[]    @relation("WarehouseUpdatedBy")
+  inventoryTransactionsCreated InventoryTransaction[] @relation("InventoryTransactionCreatedBy")
+  inventoryTransactionsUpdated InventoryTransaction[] @relation("InventoryTransactionUpdatedBy")
+  invoicesCreated   Invoice[]      @relation("InvoiceCreatedBy")
+  invoicesUpdated   Invoice[]      @relation("InvoiceUpdatedBy")
+  billsUpdated      Bill[]
+  paymentsCreated   Payment[]      @relation("PaymentCreatedBy")
+  paymentsUpdated   Payment[]      @relation("PaymentUpdatedBy")
+  budgetsCreated    Budget[]       @relation("BudgetCreatedBy")
+  budgetsUpdated    Budget[]       @relation("BudgetUpdatedBy")
+  bankAccountsCreated BankAccount[]  @relation("BankAccountCreatedBy")
+  bankAccountsUpdated BankAccount[]  @relation("BankAccountUpdatedBy")
+  bankReconciliationsCreated BankReconciliation[] @relation("BankReconciliationCreatedBy")
+  bankReconciliationsReconciled BankReconciliation[] @relation("BankReconciliationReconciledBy")
+  documentsCreated  Document[]     @relation("DocumentCreatedBy")
+  documentsUpdated  Document[]     @relation("DocumentUpdatedBy")
+  documentAssociations DocumentAssociation[]
+  documentVersions  DocumentVersion[]
+  assetMaintenanceRecordsCreated AssetMaintenanceRecord[] @relation("AssetMaintenanceRecordCreatedBy")
+  assetMaintenanceRecordsUpdated AssetMaintenanceRecord[] @relation("AssetMaintenanceRecordUpdatedBy")
+}
+
+model CompanyUser {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId   String   @db.Uuid
+  userId      String   @db.Uuid
+  role        String   @default("user") @db.VarChar(50)
+  permissions Json     @default("{}")
+  isActive    Boolean  @default(true)
+  joinedAt    DateTime @default(now()) @db.Timestamp()
+  createdBy   String?  @db.Uuid
+
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, userId])
+}
+
+model ChartOfAccounts {
+  id              String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId       String  @db.Uuid
+  code            String  @db.VarChar(20)
+  name            String  @db.VarChar(255)
+  description     String? @db.Text
+  accountType     String  @db.VarChar(50)
+  accountSubtype  String? @db.VarChar(100)
+  parentId        String? @db.Uuid
+  level           Int     @default(0)
+  path            String? @db.Text
+  isActive        Boolean @default(true)
+  isSystem        Boolean @default(false)
+  openingBalance  Decimal @default(0) @db.Decimal(15, 4)
+  currentBalance  Decimal @default(0) @db.Decimal(15, 4)
+  taxAccount      Boolean @default(false)
+  currency        String  @default("USD") @db.VarChar(3)
+  createdBy       String? @db.Uuid
+  updatedBy       String? @db.Uuid
+  createdAt       DateTime @default(now()) @db.Timestamp()
+  updatedAt       DateTime @default(now()) @db.Timestamp()
+
+  company         Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent          ChartOfAccounts?  @relation("ChartOfAccountsHierarchy", fields: [parentId], references: [id])
+  children        ChartOfAccounts[] @relation("ChartOfAccountsHierarchy")
+  createdByUser   User?             @relation("ChartOfAccountsCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser   User?             @relation("ChartOfAccountsUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  generalLedgerDetails GeneralLedgerDetail[]
+  invoiceLineItems InvoiceLineItem[]
+  billLineItems   BillLineItem[]
+  budgetLineItems BudgetLineItem[]
+  bankAccounts    BankAccount[]
+}
+
+model GeneralLedgerEntry {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId           String    @db.Uuid
+  entryNumber         String    @db.VarChar(50)
+  entryDate           DateTime  @db.Date
+  postingDate         DateTime  @db.Date
+  periodYear          Int
+  periodMonth         Int
+  description         String?   @db.Text
+  reference           String?   @db.VarChar(255)
+  sourceDocumentId    String?   @db.Uuid
+  sourceDocumentType  String?   @db.VarChar(50)
+  status              String    @default("draft") @db.VarChar(20)
+  totalDebit          Decimal   @db.Decimal(15, 4)
+  totalCredit         Decimal   @db.Decimal(15, 4)
+  currency            String    @default("USD") @db.VarChar(3)
+  exchangeRate        Decimal   @default(1.0) @db.Decimal(10, 6)
+  isAdjustment        Boolean   @default(false)
+  isRecurring         Boolean   @default(false)
+  recurringPattern    Json?
+  createdAt           DateTime  @default(now()) @db.Timestamp()
+  updatedAt           DateTime  @default(now()) @db.Timestamp()
+  createdBy           String?   @db.Uuid
+  updatedBy           String?   @db.Uuid
+  postedBy            String?   @db.Uuid
+  postedAt            DateTime? @db.Timestamp()
+
+  company             Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdByUser       User?     @relation("GeneralLedgerEntryCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser       User?     @relation("GeneralLedgerEntryUpdatedBy", fields: [updatedBy], references: [id])
+  postedByUser        User?     @relation("GeneralLedgerEntryPostedBy", fields: [postedBy], references: [id])
+  details             GeneralLedgerDetail[]
+  bankTransactions    BankTransaction[]
+  bankReconciliationItems BankReconciliationItem[]
+
+  @@unique([companyId, entryNumber])
+  @@index([companyId])
+  @@index([entryDate])
+  @@index([periodYear, periodMonth])
+  @@index([status])
+}
+
+model GeneralLedgerDetail {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entryId         String   @db.Uuid
+  lineNumber      Int
+  accountId       String   @db.Uuid
+  debitAmount     Decimal  @default(0) @db.Decimal(15, 4)
+  creditAmount    Decimal  @default(0) @db.Decimal(15, 4)
+  debitAmountBase Decimal  @default(0) @db.Decimal(15, 4)
+  creditAmountBase Decimal @default(0) @db.Decimal(15, 4)
+  description     String?  @db.Text
+  dimension1      String?  @db.VarChar(100)
+  dimension2      String?  @db.VarChar(100)
+  dimension3      String?  @db.VarChar(100)
+  createdAt       DateTime @default(now()) @db.Timestamp()
+
+  entry           GeneralLedgerEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  account         ChartOfAccounts    @relation(fields: [accountId], references: [id])
+
+  @@index([entryId])
+  @@index([accountId])
+  @@index([dimension1, dimension2, dimension3])
+}
+
+model Customer {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId         String    @db.Uuid
+  customerNumber    String    @db.VarChar(50)
+  name              String    @db.VarChar(255)
+  legalName         String?   @db.VarChar(255)
+  type              String    @default("individual") @db.VarChar(20)
+  taxId             String?   @db.VarChar(50)
+  paymentTerms      String    @default("net_30") @db.VarChar(50)
+  creditLimit       Decimal   @default(0) @db.Decimal(15, 2)
+  currency          String    @default("USD") @db.VarChar(3)
+  priceLevel        String    @default("standard") @db.VarChar(50)
+  billingAddress    Json?
+  shippingAddress   Json?
+  contactInfo       Json?
+  bankDetails       Json?
+  isActive          Boolean   @default(true)
+  createdBy         String?   @db.Uuid
+  updatedBy         String?   @db.Uuid
+  createdAt         DateTime  @default(now()) @db.Timestamp()
+  updatedAt         DateTime  @default(now()) @db.Timestamp()
+
+  company           Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdByUser     User?     @relation("CustomerCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser     User?     @relation("CustomerUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  invoices          Invoice[]
+  payments          Payment[]
+}
+
+model Vendor {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId         String    @db.Uuid
+  vendorNumber      String    @db.VarChar(50)
+  name              String    @db.VarChar(255)
+  legalName         String?   @db.VarChar(255)
+  taxId             String?   @db.VarChar(50)
+  paymentTerms      String    @default("net_30") @db.VarChar(50)
+  currency          String    @default("USD") @db.VarChar(3)
+  address           Json?
+  contactInfo       Json?
+  bankDetails       Json?
+  is1099Vendor      Boolean   @default(false)
+  isActive          Boolean   @default(true)
+  createdBy         String?   @db.Uuid
+  updatedBy         String?   @db.Uuid
+  createdAt         DateTime  @default(now()) @db.Timestamp()
+  updatedAt         DateTime  @default(now()) @db.Timestamp()
+
+  company           Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdByUser     User?      @relation("VendorCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser     User?      @relation("VendorUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  bills             Bill[]
+  payments          Payment[]
+  assetMaintenanceRecords AssetMaintenanceRecord[]
+}
+
+model Product {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId           String    @db.Uuid
+  sku                 String    @db.VarChar(100)
+  name                String    @db.VarChar(255)
+  description         String?   @db.Text
+  category            String?   @db.VarChar(100)
+  type                String    @default("product") @db.VarChar(20)
+  unitOfMeasure       String    @default("each") @db.VarChar(20)
+  costPrice           Decimal   @default(0) @db.Decimal(15, 4)
+  sellingPrice        Decimal   @default(0) @db.Decimal(15, 4)
+  markupPercentage    Decimal   @default(0) @db.Decimal(5, 2)
+  taxCategory         String?   @db.VarChar(50)
+  isTaxable           Boolean   @default(true)
+  isInventoryTracked  Boolean   @default(true)
+  isActive            Boolean   @default(true)
+  minimumStockLevel   Decimal   @default(0) @db.Decimal(15, 4)
+  reorderPoint        Decimal   @default(0) @db.Decimal(15, 4)
+  reorderQuantity     Decimal   @default(0) @db.Decimal(15, 4)
+  weight              Decimal?  @db.Decimal(10, 4)
+  dimensions          Json?
+  barcode             String?   @db.VarChar(100)
+  internalBarcode     String?   @db.VarChar(100)
+  attributes          Json      @default("{}")
+  createdBy           String?   @db.Uuid
+  updatedBy           String?   @db.Uuid
+  createdAt           DateTime  @default(now()) @db.Timestamp()
+  updatedAt           DateTime  @default(now()) @db.Timestamp()
+
+  company               Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  variants              ProductVariant[]
+  inventory             Inventory[]
+  inventoryTransactions InventoryTransaction[]
+  invoiceLineItems      InvoiceLineItem[]
+  billLineItems         BillLineItem[]
+  createdByUser         User?                  @relation("ProductCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser         User?                  @relation("ProductUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+}
+
+model ProductVariant {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId             String    @db.Uuid
+  sku                   String    @db.VarChar(100)
+  name                  String    @db.VarChar(255)
+  attributes            Json
+  costPrice             Decimal   @default(0) @db.Decimal(15, 4)
+  sellingPrice          Decimal   @default(0) @db.Decimal(15, 4)
+  barcode               String?   @db.VarChar(100)
+  internalBarcode       String?   @db.VarChar(100)
+  weight                Decimal?  @db.Decimal(10, 4)
+  dimensions            Json?
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now()) @db.Timestamp()
+  updatedAt             DateTime  @default(now()) @db.Timestamp()
+
+  product               Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  inventory             Inventory[]
+  inventoryTransactions InventoryTransaction[]
+  invoiceLineItems      InvoiceLineItem[]
+  billLineItems         BillLineItem[]
+
+  @@unique([productId, sku])
+  @@index([productId])
+  @@index([sku])
+  @@index([barcode])
+}
+
+model Warehouse {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId    String    @db.Uuid
+  code         String    @db.VarChar(20)
+  name         String    @db.VarChar(255)
+  type         String    @default("standard") @db.VarChar(50)
+  address      Json?
+  contactInfo  Json?
+  isActive     Boolean   @default(true)
+  isDefault    Boolean   @default(false)
+  createdBy    String?   @db.Uuid
+  updatedBy    String?   @db.Uuid
+  createdAt    DateTime  @default(now()) @db.Timestamp()
+  updatedAt    DateTime  @default(now()) @db.Timestamp()
+
+  company               Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdByUser         User?                  @relation("WarehouseCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser         User?                  @relation("WarehouseUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  inventory             Inventory[]
+  inventoryTransactions InventoryTransaction[]
+}
+
+model Inventory {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId          String    @db.Uuid
+  productId          String?   @db.Uuid
+  variantId          String?   @db.Uuid
+  warehouseId        String    @db.Uuid
+  quantityOnHand     Decimal   @default(0) @db.Decimal(15, 4)
+  quantityAvailable  Decimal   @default(0) @db.Decimal(15, 4)
+  quantityReserved   Decimal   @default(0) @db.Decimal(15, 4)
+  quantityOnOrder    Decimal   @default(0) @db.Decimal(15, 4)
+  averageCost        Decimal   @default(0) @db.Decimal(15, 4)
+  lastCost           Decimal   @default(0) @db.Decimal(15, 4)
+  binLocation        String?   @db.VarChar(50)
+  lastCountedAt      DateTime? @db.Timestamp()
+  createdAt          DateTime  @default(now()) @db.Timestamp()
+  updatedAt          DateTime  @default(now()) @db.Timestamp()
+
+  company            Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product            Product?       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant            ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  warehouse          Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, variantId, warehouseId])
+  @@index([companyId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([warehouseId])
+}
+
+model InventoryTransaction {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId       String    @db.Uuid
+  productId       String?   @db.Uuid
+  variantId       String?   @db.Uuid
+  warehouseId     String    @db.Uuid
+  transactionType String    @db.VarChar(50)
+  transactionDate DateTime  @db.Date
+  referenceNumber String?   @db.VarChar(100)
+  referenceType   String?   @db.VarChar(50)
+  referenceId     String?   @db.Uuid
+  quantityChange  Decimal   @db.Decimal(15, 4)
+  unitCost        Decimal?  @db.Decimal(15, 4)
+  totalCost       Decimal?  @db.Decimal(15, 4)
+  createdBy       String?   @db.Uuid
+  updatedBy       String?   @db.Uuid
+  createdAt       DateTime  @default(now()) @db.Timestamp()
+  updatedAt       DateTime  @default(now()) @db.Timestamp()
+
+  company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product         Product?        @relation(fields: [productId], references: [id])
+  variant         ProductVariant? @relation(fields: [variantId], references: [id])
+  warehouse       Warehouse       @relation(fields: [warehouseId], references: [id])
+  createdByUser   User?           @relation("InventoryTransactionCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser   User?           @relation("InventoryTransactionUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([warehouseId])
+  @@index([transactionDate])
+  @@index([referenceType, referenceId])
+}
+
+model Invoice {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId          String    @db.Uuid
+  invoiceNumber      String    @db.VarChar(50)
+  customerId         String    @db.Uuid
+  invoiceDate        DateTime  @db.Date
+  dueDate            DateTime  @db.Date
+  paymentTerms       String?   @db.VarChar(50)
+  currency           String    @default("USD") @db.VarChar(3)
+  exchangeRate       Decimal   @default(1.0) @db.Decimal(10, 6)
+  subtotal           Decimal   @default(0) @db.Decimal(15, 4)
+  taxAmount          Decimal   @default(0) @db.Decimal(15, 4)
+  discountAmount     Decimal   @default(0) @db.Decimal(15, 4)
+  totalAmount        Decimal   @default(0) @db.Decimal(15, 4)
+  paidAmount         Decimal   @default(0) @db.Decimal(15, 4)
+  outstandingAmount  Decimal   @default(0) @db.Decimal(15, 4)
+  status             String    @default("draft") @db.VarChar(20)
+  billingAddress     Json?
+  shippingAddress    Json?
+  notes              String?   @db.Text
+  terms              String?   @db.Text
+  isRecurring        Boolean   @default(false)
+  recurringPattern   Json?
+  nextInvoiceDate    DateTime? @db.Date
+  templateId         String?   @db.Uuid
+  createdAt          DateTime  @default(now()) @db.Timestamp()
+  updatedAt          DateTime  @default(now()) @db.Timestamp()
+  createdBy          String?   @db.Uuid
+  updatedBy          String?   @db.Uuid
+  sentAt             DateTime? @db.Timestamp()
+
+  company            Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer           Customer          @relation(fields: [customerId], references: [id])
+  createdByUser      User?             @relation("InvoiceCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser      User?             @relation("InvoiceUpdatedBy", fields: [updatedBy], references: [id])
+  lineItems          InvoiceLineItem[]
+  paymentAllocations PaymentAllocation[]
+
+  @@unique([companyId, invoiceNumber])
+  @@index([companyId])
+  @@index([customerId])
+  @@index([invoiceDate])
+  @@index([dueDate])
+  @@index([status])
+  @@index([invoiceNumber])
+}
+
+model InvoiceLineItem {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoiceId         String    @db.Uuid
+  lineNumber        Int
+  productId         String?   @db.Uuid
+  variantId         String?   @db.Uuid
+  description       String    @db.Text
+  quantity          Decimal   @default(1) @db.Decimal(15, 4)
+  unitPrice         Decimal   @default(0) @db.Decimal(15, 4)
+  discountPercentage Decimal  @default(0) @db.Decimal(5, 2)
+  discountAmount    Decimal   @default(0) @db.Decimal(15, 4)
+  lineTotal         Decimal   @default(0) @db.Decimal(15, 4)
+  taxRate           Decimal   @default(0) @db.Decimal(5, 4)
+  taxAmount         Decimal   @default(0) @db.Decimal(15, 4)
+  accountId         String?   @db.Uuid
+  createdAt         DateTime  @default(now()) @db.Timestamp()
+
+  invoice           Invoice          @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product           Product?         @relation(fields: [productId], references: [id])
+  variant           ProductVariant?  @relation(fields: [variantId], references: [id])
+  account           ChartOfAccounts? @relation(fields: [accountId], references: [id])
+
+  @@index([invoiceId])
+  @@index([productId])
+  @@index([variantId])
+}
+
+model Bill {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId         String    @db.Uuid
+  billNumber        String    @db.VarChar(50)
+  vendorId          String    @db.Uuid
+  billDate          DateTime  @db.Date
+  dueDate           DateTime  @db.Date
+  paymentTerms      String?   @db.VarChar(50)
+  currency          String    @default("USD") @db.VarChar(3)
+  exchangeRate      Decimal   @default(1.0) @db.Decimal(10, 6)
+  subtotal          Decimal   @default(0) @db.Decimal(15, 4)
+  taxAmount         Decimal   @default(0) @db.Decimal(15, 4)
+  totalAmount       Decimal   @default(0) @db.Decimal(15, 4)
+  paidAmount        Decimal   @default(0) @db.Decimal(15, 4)
+  outstandingAmount Decimal   @default(0) @db.Decimal(15, 4)
+  status            String    @default("draft") @db.VarChar(20)
+  referenceNumber   String?   @db.VarChar(100)
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now()) @db.Timestamp()
+  updatedAt         DateTime  @default(now()) @db.Timestamp()
+  updatedBy         String?   @db.Uuid
+  approvedAt        DateTime? @db.Timestamp()
+
+  company           Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  vendor            Vendor            @relation(fields: [vendorId], references: [id])
+  updatedByUser     User?             @relation(fields: [updatedBy], references: [id])
+  lineItems         BillLineItem[]
+  paymentAllocations PaymentAllocation[]
+
+  @@unique([companyId, billNumber])
+  @@index([companyId])
+  @@index([vendorId])
+  @@index([billDate])
+  @@index([dueDate])
+  @@index([status])
+}
+
+model BillLineItem {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  billId      String    @db.Uuid
+  lineNumber  Int
+  productId   String?   @db.Uuid
+  variantId   String?   @db.Uuid
+  description String    @db.Text
+  quantity    Decimal   @default(1) @db.Decimal(15, 4)
+  unitCost    Decimal   @default(0) @db.Decimal(15, 4)
+  lineTotal   Decimal   @default(0) @db.Decimal(15, 4)
+  taxRate     Decimal   @default(0) @db.Decimal(5, 4)
+  taxAmount   Decimal   @default(0) @db.Decimal(15, 4)
+  accountId   String?   @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamp()
+
+  bill        Bill             @relation(fields: [billId], references: [id], onDelete: Cascade)
+  product     Product?         @relation(fields: [productId], references: [id])
+  variant     ProductVariant?  @relation(fields: [variantId], references: [id])
+  account     ChartOfAccounts? @relation(fields: [accountId], references: [id])
+
+  @@index([billId])
+  @@index([productId])
+  @@index([variantId])
+}
+
+model Payment {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId       String    @db.Uuid
+  paymentNumber   String    @db.VarChar(50)
+  paymentType     String    @db.VarChar(20)
+  customerId      String?   @db.Uuid
+  vendorId        String?   @db.Uuid
+  paymentDate     DateTime  @db.Date
+  amount          Decimal   @db.Decimal(15, 4)
+  currency        String    @default("USD") @db.VarChar(3)
+  exchangeRate    Decimal   @default(1.0) @db.Decimal(10, 6)
+  paymentMethod   String    @db.VarChar(50)
+  referenceNumber String?   @db.VarChar(100)
+  bankAccountId   String?   @db.Uuid
+  notes           String?   @db.Text
+  status          String    @default("cleared") @db.VarChar(20)
+  createdAt       DateTime  @default(now()) @db.Timestamp()
+  updatedAt       DateTime  @default(now()) @db.Timestamp()
+  createdBy       String?   @db.Uuid
+  updatedBy       String?   @db.Uuid
+
+  company           Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer          Customer?           @relation(fields: [customerId], references: [id])
+  vendor            Vendor?             @relation(fields: [vendorId], references: [id])
+  bankAccount       BankAccount?        @relation(fields: [bankAccountId], references: [id])
+  createdByUser     User?               @relation("PaymentCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser     User?               @relation("PaymentUpdatedBy", fields: [updatedBy], references: [id])
+  allocations       PaymentAllocation[]
+  bankTransactions  BankTransaction[]
+  bankReconciliationItems BankReconciliationItem[]
+
+  @@unique([companyId, paymentNumber])
+  @@index([companyId])
+  @@index([customerId])
+  @@index([vendorId])
+  @@index([paymentDate])
+  @@index([paymentType])
+}
+
+model PaymentAllocation {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  paymentId      String   @db.Uuid
+  invoiceId      String?  @db.Uuid
+  billId         String?  @db.Uuid
+  allocatedAmount Decimal @db.Decimal(15, 4)
+  createdAt      DateTime @default(now()) @db.Timestamp()
+
+  payment        Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoice        Invoice? @relation(fields: [invoiceId], references: [id])
+  bill           Bill?    @relation(fields: [billId], references: [id])
+
+  @@index([paymentId])
+  @@index([invoiceId])
+  @@index([billId])
+}
+
+model FiscalPeriod {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId   String   @db.Uuid
+  periodName  String   @db.VarChar(50)
+  periodType  String   @db.VarChar(20)
+  startDate   DateTime @db.Date
+  endDate     DateTime @db.Date
+  fiscalYear  Int
+  periodNumber Int
+  isClosed    Boolean  @default(false)
+  closedAt    DateTime? @db.Timestamp()
+  closedBy    String?  @db.Uuid
+  createdAt   DateTime @default(now()) @db.Timestamp()
+
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, fiscalYear, periodNumber, periodType])
+  @@index([companyId])
+  @@index([startDate, endDate])
+  @@index([fiscalYear])
+}
+
+model Budget {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId       String   @db.Uuid
+  name            String   @db.VarChar(255)
+  description     String?  @db.Text
+  budgetType      String   @db.VarChar(50)
+  fiscalYear      Int
+  startDate       DateTime @db.Date
+  endDate         DateTime @db.Date
+  status          String   @default("draft") @db.VarChar(20)
+  version         Int      @default(1)
+  parentBudgetId  String?  @db.Uuid
+  createdAt       DateTime @default(now()) @db.Timestamp()
+  updatedAt       DateTime @default(now()) @db.Timestamp()
+  createdBy       String?  @db.Uuid
+  updatedBy       String?  @db.Uuid
+  approvedAt      DateTime? @db.Timestamp()
+
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parentBudget    Budget?   @relation("BudgetHierarchy", fields: [parentBudgetId], references: [id])
+  childBudgets    Budget[]  @relation("BudgetHierarchy")
+  createdByUser   User?     @relation("BudgetCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser   User?     @relation("BudgetUpdatedBy", fields: [updatedBy], references: [id])
+  lineItems       BudgetLineItem[]
+
+  @@index([companyId])
+  @@index([fiscalYear])
+  @@index([status])
+}
+
+model BudgetLineItem {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  budgetId            String   @db.Uuid
+  accountId           String   @db.Uuid
+  periodYear          Int
+  periodMonth         Int
+  budgetedAmount      Decimal  @default(0) @db.Decimal(15, 4)
+  actualAmount        Decimal  @default(0) @db.Decimal(15, 4)
+  // variance is a generated column, Prisma does not support this directly.
+  // variance_percentage is a generated column, Prisma does not support this directly.
+  dimension1          String?  @db.VarChar(100)
+  dimension2          String?  @db.VarChar(100)
+  dimension3          String?  @db.VarChar(100)
+  notes               String?  @db.Text
+  createdAt           DateTime @default(now()) @db.Timestamp()
+  updatedAt           DateTime @default(now()) @db.Timestamp()
+
+  budget              Budget          @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  account             ChartOfAccounts @relation(fields: [accountId], references: [id])
+
+  @@unique([budgetId, accountId, periodYear, periodMonth])
+  @@index([budgetId])
+  @@index([accountId])
+  @@index([periodYear, periodMonth])
+}
+
+// Omitting Employee model as it's not provided in the schema.
+// You would need to define it for the relations in EmployeeLeaveBalance and TimeEntry to work.
+// model Employee { ... }
+
+model EmployeeLeaveBalance {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  employeeId    String   @db.Uuid
+  leaveType     String   @db.VarChar(50)
+  balanceHours  Decimal  @default(0) @db.Decimal(6, 2)
+  accrualRate   Decimal? @db.Decimal(6, 4)
+  maxBalance    Decimal? @db.Decimal(6, 2)
+  year          Int
+  updatedAt     DateTime @default(now()) @db.Timestamp()
+
+  // employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, leaveType, year])
+  @@index([employeeId])
+  @@index([leaveType])
+}
+
+model TimeEntry {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId       String   @db.Uuid
+  employeeId      String   @db.Uuid
+  entryDate       DateTime @db.Date
+  clockIn         DateTime? @db.Time()
+  clockOut        DateTime? @db.Time()
+  breakDuration   Unsupported("interval")? @default(dbgenerated("'0 minutes'::interval"))
+  // totalHours is a generated column
+  overtimeHours   Decimal  @default(0) @db.Decimal(8, 2)
+  entryType       String   @default("regular") @db.VarChar(20)
+  projectCode     String?  @db.VarChar(50)
+  notes           String?  @db.Text
+  status          String   @default("draft") @db.VarChar(20)
+  submittedAt     DateTime? @db.Timestamp()
+  approvedAt      DateTime? @db.Timestamp()
+  approvedBy      String?  @db.Uuid
+  createdAt       DateTime @default(now()) @db.Timestamp()
+  updatedAt       DateTime @default(now()) @db.Timestamp()
+
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  // employee        Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([entryDate])
+  @@index([status])
+}
+
+model PayrollRun {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId          String   @db.Uuid
+  payPeriodStart     DateTime @db.Date
+  payPeriodEnd       DateTime @db.Date
+  payrollNumber      String   @db.VarChar(50)
+  payDate            DateTime @db.Date
+  payrollType        String   @default("regular") @db.VarChar(20)
+  status             String   @default("draft") @db.VarChar(20)
+  totalGrossPay      Decimal  @default(0) @db.Decimal(15, 4)
+  totalDeductions    Decimal  @default(0) @db.Decimal(15, 4)
+  totalNetPay        Decimal  @default(0) @db.Decimal(15, 4)
+  totalEmployerTaxes Decimal  @default(0) @db.Decimal(15, 4)
+  processedBy        String?  @db.Uuid
+  processedAt        DateTime? @db.Timestamp()
+  notes              String?  @db.Text
+  createdAt          DateTime @default(now()) @db.Timestamp()
+  updatedAt          DateTime @default(now()) @db.Timestamp()
+
+  company            Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, payrollNumber])
+  @@unique([companyId, payPeriodStart, payPeriodEnd, payrollType])
+  @@index([companyId])
+  @@index([payPeriodStart, payPeriodEnd])
+  @@index([status])
+}
+
+model BankAccount {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId              String    @db.Uuid
+  accountName            String    @db.VarChar(255)
+  accountNumber          String    @db.VarChar(50)
+  bankName               String    @db.VarChar(255)
+  bankIdentifier         String?   @db.VarChar(50)
+  accountType            String    @default("checking") @db.VarChar(50)
+  currency               String    @default("USD") @db.VarChar(3)
+  openingBalance         Decimal   @default(0) @db.Decimal(15, 4)
+  currentBalance         Decimal   @default(0) @db.Decimal(15, 4)
+  lastReconciledBalance  Decimal   @default(0) @db.Decimal(15, 4)
+  lastReconciledDate     DateTime? @db.Date
+  chartAccountId         String?   @db.Uuid
+  bankFeedEnabled        Boolean   @default(false)
+  bankConnectionId       String?   @db.VarChar(255)
+  isActive               Boolean   @default(true)
+  createdAt              DateTime  @default(now()) @db.Timestamp()
+  updatedAt              DateTime  @default(now()) @db.Timestamp()
+  createdBy              String?   @db.Uuid
+  updatedBy              String?   @db.Uuid
+
+  company                Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  chartAccount           ChartOfAccounts?     @relation(fields: [chartAccountId], references: [id])
+  createdByUser          User?                @relation("BankAccountCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser          User?                @relation("BankAccountUpdatedBy", fields: [updatedBy], references: [id])
+  payments               Payment[]
+  bankTransactions       BankTransaction[]
+  bankReconciliations    BankReconciliation[]
+  bankFeeds              BankFeed[]
+
+  @@unique([companyId, accountNumber, bankIdentifier])
+  @@index([companyId])
+  @@index([chartAccountId])
+}
+
+model BankTransaction {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankAccountId          String    @db.Uuid
+  transactionDate        DateTime  @db.Date
+  postedDate             DateTime? @db.Date
+  description            String    @db.Text
+  referenceNumber        String?   @db.VarChar(100)
+  transactionType        String    @db.VarChar(20)
+  amount                 Decimal   @db.Decimal(15, 4)
+  runningBalance         Decimal?  @db.Decimal(15, 4)
+  bankCategory           String?   @db.VarChar(100)
+  isReconciled           Boolean   @default(false)
+  reconciledAt           DateTime? @db.Timestamp()
+  matchedPaymentId       String?   @db.Uuid
+  matchedJournalEntryId  String?   @db.Uuid
+  bankTransactionId      String?   @db.VarChar(255)
+  importedAt             DateTime? @db.Timestamp()
+  createdAt              DateTime  @default(now()) @db.Timestamp()
+
+  bankAccount            BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  matchedPayment         Payment?    @relation(fields: [matchedPaymentId], references: [id])
+  matchedJournalEntry    GeneralLedgerEntry? @relation(fields: [matchedJournalEntryId], references: [id])
+  bankReconciliationItems BankReconciliationItem[]
+
+  @@index([bankAccountId])
+  @@index([transactionDate])
+  @@index([isReconciled])
+  @@index([bankTransactionId])
+}
+
+model BankReconciliation {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankAccountId            String    @db.Uuid
+  reconciliationDate       DateTime  @db.Date
+  statementEndingDate      DateTime  @db.Date
+  statementEndingBalance   Decimal   @db.Decimal(15, 4)
+  bookBalance              Decimal   @db.Decimal(15, 4)
+  reconciledBalance        Decimal   @db.Decimal(15, 4)
+  outstandingDeposits      Decimal   @default(0) @db.Decimal(15, 4)
+  outstandingChecks        Decimal   @default(0) @db.Decimal(15, 4)
+  status                   String    @default("in_progress") @db.VarChar(20)
+  // difference is a generated column
+  notes                    String?   @db.Text
+  reconciledBy             String?   @db.Uuid
+  createdBy                String?   @db.Uuid
+  updatedAt                DateTime  @default(now()) @db.Timestamp()
+
+  bankAccount              BankAccount @relation(fields: [bankAccountId], references: [id])
+  reconciledByUser         User?       @relation("BankReconciliationReconciledBy", fields: [reconciledBy], references: [id])
+  createdByUser            User?       @relation("BankReconciliationCreatedBy", fields: [createdBy], references: [id])
+  items                    BankReconciliationItem[]
+
+  @@unique([bankAccountId, statementEndingDate])
+  @@index([bankAccountId])
+  @@index([reconciliationDate])
+  @@index([status])
+}
+
+model BankReconciliationItem {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reconciliationId       String    @db.Uuid
+  bankTransactionId      String?   @db.Uuid
+  generalLedgerEntryId   String?   @db.Uuid
+  paymentId              String?   @db.Uuid
+  itemType               String    @db.VarChar(30)
+  amount                 Decimal   @db.Decimal(15, 4)
+  description            String?   @db.Text
+  isMatched              Boolean   @default(false)
+  createdAt              DateTime  @default(now()) @db.Timestamp()
+
+  reconciliation         BankReconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  bankTransaction        BankTransaction?   @relation(fields: [bankTransactionId], references: [id])
+  generalLedgerEntry     GeneralLedgerEntry? @relation(fields: [generalLedgerEntryId], references: [id])
+  payment                Payment?           @relation(fields: [paymentId], references: [id])
+
+  @@index([reconciliationId])
+  @@index([bankTransactionId])
+  @@index([itemType])
+}
+
+model BankFeed {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankAccountId  String    @db.Uuid
+  provider       String    @db.VarChar(50)
+  connectionId   String?   @db.VarChar(255)
+  accessToken    String?   @db.Text
+  refreshToken   String?   @db.Text
+  lastSyncDate   DateTime? @db.Timestamp()
+  syncFrequency  String    @default("daily") @db.VarChar(20)
+  isActive       Boolean   @default(true)
+  errorCount     Int       @default(0)
+  lastError      String?   @db.Text
+  createdAt      DateTime  @default(now()) @db.Timestamp()
+  updatedAt      DateTime  @default(now()) @db.Timestamp()
+
+  bankAccount    BankAccount @relation(fields: [bankAccountId], references: [id])
+
+  @@index([bankAccountId])
+  @@index([provider])
+  @@index([isActive])
+}
+
+model Document {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId        String    @db.Uuid
+  name             String    @db.VarChar(255)
+  description      String?   @db.Text
+  fileName         String    @db.VarChar(500)
+  fileSize         BigInt
+  fileType         String    @db.VarChar(100)
+  mimeType         String?   @db.VarChar(100)
+  filePath         String    @db.VarChar(1000)
+  fileHash         String?   @db.VarChar(64)
+  category         String?   @db.VarChar(100)
+  tags             String[]  @db.Text
+  isProcessed      Boolean   @default(false)
+  ocrText          String?   @db.Text
+  ocrConfidence    Decimal?  @db.Decimal(5, 2)
+  metadata         Json?
+  retentionDate    DateTime? @db.Date
+  isArchived       Boolean   @default(false)
+  createdBy        String?   @db.Uuid
+  updatedBy        String?   @db.Uuid
+
+  company          Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdByUser    User?                 @relation("DocumentCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser    User?                 @relation("DocumentUpdatedBy", fields: [updatedBy], references: [id])
+  associations     DocumentAssociation[]
+  versions         DocumentVersion[]
+}
+
+model DocumentAssociation {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  documentId      String   @db.Uuid
+  entityType      String   @db.VarChar(50)
+  entityId        String   @db.Uuid
+  associationType String   @default("attachment") @db.VarChar(50)
+  createdAt       DateTime @default(now()) @db.Timestamp()
+  createdBy       String?  @db.Uuid
+
+  document        Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdByUser   User?    @relation(fields: [createdBy], references: [id])
+}
+
+model DocumentVersion {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  documentId        String   @db.Uuid
+  versionNumber     Int
+  fileName          String   @db.VarChar(500)
+  filePath          String   @db.VarChar(1000)
+  fileSize          BigInt
+  changeDescription String?  @db.Text
+  isCurrent         Boolean  @default(false)
+  createdAt         DateTime @default(now()) @db.Timestamp()
+  createdBy         String?  @db.Uuid
+
+  document          Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdByUser     User?    @relation(fields: [createdBy], references: [id])
+}
+
+// Omitting FixedAsset model as it's not provided in the schema.
+// You would need to define it for the relation in AssetMaintenanceRecord to work.
+// model FixedAsset { ... }
+
+model AssetMaintenanceRecord {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assetId             String    @db.Uuid
+  maintenanceType     String    @db.VarChar(50)
+  description         String    @db.Text
+  maintenanceDate     DateTime  @db.Date
+  nextMaintenanceDate DateTime? @db.Date
+  cost                Decimal   @default(0) @db.Decimal(15, 4)
+  vendorId            String?   @db.Uuid
+  technicianName      String?   @db.VarChar(100)
+  warrantyExpiry      DateTime? @db.Date
+  notes               String?   @db.Text
+  createdAt           DateTime  @default(now()) @db.Timestamp()
+  updatedAt           DateTime  @default(now()) @db.Timestamp()
+  createdBy           String?   @db.Uuid
+  updatedBy           String?   @db.Uuid
+
+  // asset               FixedAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  vendor              Vendor?   @relation(fields: [vendorId], references: [id])
+  createdByUser       User?     @relation("AssetMaintenanceRecordCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser       User?     @relation("AssetMaintenanceRecordUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@index([assetId])
+  @@index([maintenanceDate])
+  @@index([maintenanceType])
+}
