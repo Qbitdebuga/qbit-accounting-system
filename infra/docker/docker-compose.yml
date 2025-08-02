@@ -1,0 +1,26 @@
+# This file defines the services for your local development environment.
+# It is configured to match the settings in your k8s/postgres-secret.yaml file.
+# To run it, navigate to this directory and use: docker-compose up -d
+
+version: '3.8'
+
+services:
+  # This is the PostgreSQL database service
+  postgres:
+    image: postgres:15 # Matching the image version from your k8s deployment
+    container_name: qbit_postgres_db
+    restart: always
+    environment:
+      # These values are taken from your postgres-secret.yaml
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: qbit
+    ports:
+      # This makes the database accessible from your local machine on port 5432
+      - "5432:5432"
+    volumes:
+      # This ensures your data is saved even if you restart the container
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
