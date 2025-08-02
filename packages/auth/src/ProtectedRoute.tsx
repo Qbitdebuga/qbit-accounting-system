@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth, useUser } from '@clerk/nextjs';
+import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import React, { useEffect } from 'react';
 

@@ -1,5 +1,5 @@
 'use client';
-
+import React from "react";
 import { useUser } from '@clerk/nextjs';
 import { SystemRole, Permission, rolePermissions } from './permissions';
 

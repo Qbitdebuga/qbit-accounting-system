@@ -1,5 +1,5 @@
 import AppLayout from '@web/components/layout/AppLayout';
-import { WithPermission, Permission } from '@qbit/auth';
+//import { WithPermission, Permission } from '@qbit/auth';
 import { Button } from '@web/components/ui/button';
 
 export default function DashboardPage() {

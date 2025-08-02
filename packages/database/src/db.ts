@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client'
 // in the development environment due to Next.js's hot-reloading feature.
 declare global {
   // allow global `var` declarations
-  // eslint-disable-next-line no-var
+   
   var prisma: PrismaClient | undefined
 }
 
