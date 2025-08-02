@@ -28,6 +28,7 @@ export default defineConfig([
       "react/no-unused-vars": "off",
       "react/no-unused-expressions": "off",
       "react/jsx-no-target-blank": "off",
+      "no-unused-vars": "off",
     },
     extends: ["js/recommended"],
     languageOptions: {
